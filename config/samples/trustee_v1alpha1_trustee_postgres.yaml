@@ -1,0 +1,50 @@
+apiVersion: trustee.confidentialcontainers.org/v1alpha1
+kind: Trustee
+metadata:
+  labels:
+    app.kubernetes.io/name: trustee-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: trustee-postgres
+spec:
+  logLevel: info
+  sessionStorageType: Memory
+  storageBackend:
+    type: Postgres
+    postgres:
+      mode: internal
+      internal:
+        initKvTables: true
+  kbs:
+    replicaCount: 1
+    image:
+      repository: ghcr.io/confidential-containers/staged-images/kbs-grpc-as
+      tag: latest
+    service:
+      port: 8080
+  as:
+    replicaCount: 1
+    image:
+      repository: ghcr.io/confidential-containers/staged-images/coco-as-grpc
+      tag: latest
+    service:
+      port: 50004
+  rvps:
+    replicaCount: 1
+    image:
+      repository: ghcr.io/confidential-containers/staged-images/rvps
+      tag: latest
+    service:
+      port: 50003
+  secrets:
+    useEphemeralGeneratedKeys: true
+  postgresql:
+    enabled: true
+    nameOverride: postgres
+    auth:
+      username: trustee
+      password: trustee
+      database: trustee
+    primary:
+      persistence:
+        enabled: true
+        size: 8Gi
