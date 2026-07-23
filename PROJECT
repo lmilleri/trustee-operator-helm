@@ -20,4 +20,13 @@ resources:
   kind: Trustee
   path: github.com/confidential-containers/trustee-operator/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: confidentialcontainers.org
+  group: trustee
+  kind: TrusteeConfig
+  path: github.com/confidential-containers/trustee-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

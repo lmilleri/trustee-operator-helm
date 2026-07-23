@@ -159,6 +159,15 @@ func (c *Client) Uninstall(releaseName string) error {
 	return nil
 }
 
+func ChartVersion() (string, error) {
+	chartPath := resolveChartPath()
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		return "", fmt.Errorf("loading chart from %s: %w", chartPath, err)
+	}
+	return chart.Metadata.Version, nil
+}
+
 func resolveChartPath() string {
 	if p := os.Getenv("TRUSTEE_CHART_PATH"); p != "" {
 		return p

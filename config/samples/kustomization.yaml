@@ -1,4 +1,5 @@
 ## Append samples of your project ##
 resources:
 - trustee_v1alpha1_trustee.yaml
+- trustee_v1alpha1_trusteeconfig.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

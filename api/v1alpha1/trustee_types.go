@@ -423,6 +423,8 @@ type TrusteeStatus struct {
 	ReleaseName string `json:"releaseName,omitempty"`
 	// +optional
 	ReleaseRevision int `json:"releaseRevision,omitempty"`
+	// +optional
+	ChartVersion string `json:"chartVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

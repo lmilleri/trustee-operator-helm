@@ -6,6 +6,11 @@ A Kubernetes operator for deploying and managing [CoCo Trustee](https://github.c
 
 This operator uses an embedded Helm chart to deploy and lifecycle-manage a full Trustee stack. Users create a `Trustee` custom resource describing the desired deployment, and the operator translates the CR spec into Helm values, installs or upgrades the release, and continuously monitors the health of KBS, AS, and RVPS deployments.
 
+The operator provides two CRD levels:
+
+- **TrusteeConfig** — a high-level, profile-driven CR. Choose a profile (e.g. `Permissive`) and the operator generates the corresponding `Trustee` CR with the right defaults. Ideal for getting started quickly.
+- **Trustee** — a detailed CR that maps directly to Helm values. Use this when you need fine-grained control over every component.
+
 The operator supports:
 - **LocalFs, LocalJson, Postgres, and Memory** storage backends
 - **Bundled or external PostgreSQL** (via the Bitnami subchart)
@@ -44,15 +49,41 @@ make deploy IMG=<some-registry>/trustee-operator:tag
 
 > If you encounter RBAC errors, you may need cluster-admin privileges.
 
-### Create a Trustee instance
+### Create a TrusteeConfig instance (recommended)
 
-Apply one of the sample CRs:
+The simplest way to deploy Trustee is via the `TrusteeConfig` CR:
 
-```sh
-kubectl apply -k config/samples/
+```yaml
+apiVersion: trustee.confidentialcontainers.org/v1alpha1
+kind: TrusteeConfig
+metadata:
+  name: trusteeconfig-sample
+spec:
+  profile: Permissive
 ```
 
-Minimal example:
+```sh
+kubectl apply -f config/samples/trustee_v1alpha1_trusteeconfig.yaml
+```
+
+The `Permissive` profile deploys Trustee with insecure HTTP and debug logging — suitable for development and testing. The operator automatically creates and manages the underlying `Trustee` CR.
+
+Optional fields:
+
+| Field | Description | Default |
+|---|---|---|
+| `replicaCount` | Replica count for all components (KBS, AS, RVPS) | `1` |
+| `kbsServiceType` | Service type for KBS (`NodePort`, `LoadBalancer`) | `ClusterIP` |
+
+Check status:
+
+```sh
+kubectl get trusteeconfig,trustee
+```
+
+### Create a Trustee instance (advanced)
+
+For fine-grained control, create a `Trustee` CR directly:
 
 ```yaml
 apiVersion: trustee.confidentialcontainers.org/v1alpha1
@@ -66,6 +97,39 @@ spec:
   secrets:
     useEphemeralGeneratedKeys: true
 ```
+
+See `config/samples/` for more examples including Postgres backends.
+
+### Deploy on kind (local development)
+
+```sh
+kind create cluster
+make docker-build IMG=trustee-operator:dev
+kind load docker-image trustee-operator:dev
+make install
+make deploy IMG=trustee-operator:dev
+kubectl apply -f config/samples/trustee_v1alpha1_trusteeconfig.yaml
+```
+
+### Managing policies and resources
+
+Use the helper script to interact with KBS via `kbs-client`:
+
+```sh
+# Set resource policy
+./hack/scripts/kbs-client.sh trusteeconfig-sample set-resource-policy --allow-all
+
+# Upload a resource
+./hack/scripts/kbs-client.sh trusteeconfig-sample set-resource --path default/keys/my-key --resource-file key.bin
+
+# Set attestation policy
+./hack/scripts/kbs-client.sh trusteeconfig-sample set-attestation-policy --policy-file policy.rego --type rego --id default
+
+# See all options
+./hack/scripts/kbs-client.sh --help
+```
+
+The script extracts the admin token from the bootstrap secret and sets up port-forwarding automatically. Requires `kbs-client` in your PATH.
 
 ### Uninstall
 

@@ -1,0 +1,9 @@
+apiVersion: trustee.confidentialcontainers.org/v1alpha1
+kind: TrusteeConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: trustee-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: trusteeconfig-sample
+spec:
+  profile: Permissive

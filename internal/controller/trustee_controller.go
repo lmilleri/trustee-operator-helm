@@ -53,6 +53,7 @@ type TrusteeReconciler struct {
 // +kubebuilder:rbac:groups=trustee.confidentialcontainers.org,resources=trustees/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=trustee.confidentialcontainers.org,resources=trustees/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=replicasets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=services;configmaps;secrets;serviceaccounts;persistentvolumes;persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
@@ -85,29 +86,41 @@ func (r *TrusteeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	helmClient := trusteehelm.NewClient(r.RESTGetter, trustee.Namespace)
 	releaseName := r.releaseName(trustee)
 
-	vals, err := trusteehelm.SpecToValues(&trustee.Spec)
+	chartVersion, err := trusteehelm.ChartVersion()
 	if err != nil {
-		logger.Error(err, "failed to convert spec to Helm values")
-		r.setCondition(ctx, trustee, trusteev1alpha1.ConditionTypeHelmReleaseReady,
-			metav1.ConditionFalse, "SpecConversionFailed", err.Error())
+		logger.Error(err, "failed to read chart version")
 		return ctrl.Result{}, err
 	}
 
-	rel, err := helmClient.InstallOrUpgrade(releaseName, vals)
-	if err != nil {
-		logger.Error(err, "failed to install/upgrade Helm release")
+	needsHelmSync := trustee.Generation != trustee.Status.ObservedGeneration ||
+		trustee.Status.ChartVersion != chartVersion
+
+	if needsHelmSync {
+		vals, err := trusteehelm.SpecToValues(&trustee.Spec)
+		if err != nil {
+			logger.Error(err, "failed to convert spec to Helm values")
+			r.setCondition(ctx, trustee, trusteev1alpha1.ConditionTypeHelmReleaseReady,
+				metav1.ConditionFalse, "SpecConversionFailed", err.Error())
+			return ctrl.Result{}, err
+		}
+
+		rel, err := helmClient.InstallOrUpgrade(releaseName, vals)
+		if err != nil {
+			logger.Error(err, "failed to install/upgrade Helm release")
+			r.setCondition(ctx, trustee, trusteev1alpha1.ConditionTypeHelmReleaseReady,
+				metav1.ConditionFalse, "HelmReleaseFailed", err.Error())
+			return ctrl.Result{RequeueAfter: requeueAfter}, err
+		}
+
+		trustee.Status.ReleaseName = rel.Name
+		trustee.Status.ReleaseRevision = rel.Version
+		trustee.Status.ObservedGeneration = trustee.Generation
+		trustee.Status.ChartVersion = chartVersion
+
 		r.setCondition(ctx, trustee, trusteev1alpha1.ConditionTypeHelmReleaseReady,
-			metav1.ConditionFalse, "HelmReleaseFailed", err.Error())
-		return ctrl.Result{RequeueAfter: requeueAfter}, err
+			metav1.ConditionTrue, "HelmReleaseReady",
+			fmt.Sprintf("Release %s at revision %d", rel.Name, rel.Version))
 	}
-
-	trustee.Status.ReleaseName = rel.Name
-	trustee.Status.ReleaseRevision = rel.Version
-	trustee.Status.ObservedGeneration = trustee.Generation
-
-	r.setCondition(ctx, trustee, trusteev1alpha1.ConditionTypeHelmReleaseReady,
-		metav1.ConditionTrue, "HelmReleaseReady",
-		fmt.Sprintf("Release %s at revision %d", rel.Name, rel.Version))
 
 	r.updateComponentStatus(ctx, trustee)
 

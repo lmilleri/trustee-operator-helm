@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/trustee.confidentialcontainers.org_trustees.yaml
+- bases/trustee.confidentialcontainers.org_trusteeconfigs.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

@@ -42,6 +42,14 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - batch
   resources:
   - jobs
@@ -83,6 +91,7 @@ rules:
 - apiGroups:
   - trustee.confidentialcontainers.org
   resources:
+  - trusteeconfigs
   - trustees
   verbs:
   - create
@@ -95,12 +104,14 @@ rules:
 - apiGroups:
   - trustee.confidentialcontainers.org
   resources:
+  - trusteeconfigs/finalizers
   - trustees/finalizers
   verbs:
   - update
 - apiGroups:
   - trustee.confidentialcontainers.org
   resources:
+  - trusteeconfigs/status
   - trustees/status
   verbs:
   - get

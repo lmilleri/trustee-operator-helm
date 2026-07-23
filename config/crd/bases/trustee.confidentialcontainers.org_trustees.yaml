@@ -6768,6 +6768,8 @@ spec:
           status:
             description: TrusteeStatus defines the observed state of Trustee.
             properties:
+              chartVersion:
+                type: string
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current

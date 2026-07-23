@@ -221,6 +221,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Trustee")
 		os.Exit(1)
 	}
+	if err := (&controller.TrusteeConfigReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "TrusteeConfig")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {

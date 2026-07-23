@@ -37,7 +37,7 @@ var _ = Describe("Trustee Controller", func() {
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: "default",
+			Namespace: testNamespace,
 		}
 
 		BeforeEach(func() {
@@ -48,7 +48,7 @@ var _ = Describe("Trustee Controller", func() {
 				resource := &trusteev1alpha1.Trustee{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
-						Namespace: "default",
+						Namespace: testNamespace,
 					},
 					Spec: trusteev1alpha1.TrusteeSpec{
 						LogLevel: "info",

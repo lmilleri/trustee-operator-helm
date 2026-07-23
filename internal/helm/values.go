@@ -69,10 +69,6 @@ func cleanEmpty(m map[string]interface{}) {
 			if val == 0 {
 				delete(m, k)
 			}
-		case bool:
-			if !val {
-				delete(m, k)
-			}
 		case []interface{}:
 			if len(val) == 0 {
 				delete(m, k)
