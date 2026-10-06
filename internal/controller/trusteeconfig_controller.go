@@ -136,6 +136,13 @@ func (r *TrusteeConfigReconciler) buildTrusteeSpec(tc *trusteev1alpha1.TrusteeCo
 		spec.KBS.Service.ExposeLoadBalancer = true
 	}
 
+	if tc.Spec.HttpsSpec.TlsSecretName != "" {
+		spec.KBS.TLS = trusteev1alpha1.KBSTLSSpec{
+			Enabled:    true,
+			SecretName: tc.Spec.HttpsSpec.TlsSecretName,
+		}
+	}
+
 	return spec
 }
 

@@ -25,13 +25,16 @@ import (
 type ProfileType string
 
 const (
-	ProfilePermissive ProfileType = "Permissive"
+	ProfileTypePermissive ProfileType = "Permissive"
 )
 
 // TrusteeConfigSpec defines the desired state of TrusteeConfig.
 type TrusteeConfigSpec struct {
+	// ProfileType determines how to configure trustee, e.g. in
+	// permissive/restricted mode etc.
 	// +kubebuilder:default=Permissive
-	Profile ProfileType `json:"profile"`
+	// +optional
+	Profile ProfileType `json:"profileType,omitempty"`
 
 	// +kubebuilder:default=1
 	// +optional
@@ -39,6 +42,22 @@ type TrusteeConfigSpec struct {
 
 	// +optional
 	KbsServiceType corev1.ServiceType `json:"kbsServiceType,omitempty"`
+
+	// HttpsSpec hosts the HTTPS configuration. Providing a TLS secret enables
+	// native HTTPS on the KBS endpoint.
+	// +optional
+	HttpsSpec HttpsSpec `json:"httpsSpec,omitempty"`
+}
+
+// HttpsSpec defines the desired state for HTTPS configuration. The referenced
+// Secret is not created by the operator and must exist in the same namespace.
+type HttpsSpec struct {
+	// TlsSecretName is the name of the Kubernetes TLS secret (type:
+	// kubernetes.io/tls, containing tls.crt and tls.key) that holds the KBS
+	// HTTPS certificate and private key. When set, native HTTPS is enabled on
+	// the KBS endpoint.
+	// +optional
+	TlsSecretName string `json:"tlsSecretName,omitempty"`
 }
 
 // TrusteeConfigStatus defines the observed state of TrusteeConfig.
@@ -57,7 +76,7 @@ const (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.profile`
+// +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.profileType`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 

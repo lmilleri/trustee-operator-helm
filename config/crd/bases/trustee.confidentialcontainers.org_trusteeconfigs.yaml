@@ -15,7 +15,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.profile
+    - jsonPath: .spec.profileType
       name: Profile
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
@@ -49,11 +49,27 @@ spec:
           spec:
             description: TrusteeConfigSpec defines the desired state of TrusteeConfig.
             properties:
+              httpsSpec:
+                description: |-
+                  HttpsSpec hosts the HTTPS configuration. Providing a TLS secret enables
+                  native HTTPS on the KBS endpoint.
+                properties:
+                  tlsSecretName:
+                    description: |-
+                      TlsSecretName is the name of the Kubernetes TLS secret (type:
+                      kubernetes.io/tls, containing tls.crt and tls.key) that holds the KBS
+                      HTTPS certificate and private key. When set, native HTTPS is enabled on
+                      the KBS endpoint.
+                    type: string
+                type: object
               kbsServiceType:
                 description: Service Type string describes ingress methods for a service
                 type: string
-              profile:
+              profileType:
                 default: Permissive
+                description: |-
+                  ProfileType determines how to configure trustee, e.g. in
+                  permissive/restricted mode etc.
                 enum:
                 - Permissive
                 type: string
@@ -61,8 +77,6 @@ spec:
                 default: 1
                 format: int32
                 type: integer
-            required:
-            - profile
             type: object
           status:
             description: TrusteeConfigStatus defines the observed state of TrusteeConfig.

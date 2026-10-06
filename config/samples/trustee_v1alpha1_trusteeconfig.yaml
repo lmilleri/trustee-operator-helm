@@ -6,4 +6,9 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: trusteeconfig-sample
 spec:
-  profile: Permissive
+  profileType: Permissive
+  # Enable native HTTPS on the KBS endpoint by referencing a TLS Secret. It must
+  # be a kubernetes.io/tls Secret (tls.crt + tls.key) created in the same
+  # namespace; the operator does not generate certificates.
+  # httpsSpec:
+  #   tlsSecretName: kbs-tls

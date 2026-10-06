@@ -50,7 +50,7 @@ var _ = Describe("TrusteeConfig Controller", func() {
 						Namespace: testNamespace,
 					},
 					Spec: trusteev1alpha1.TrusteeConfigSpec{
-						Profile: trusteev1alpha1.ProfilePermissive,
+						Profile: trusteev1alpha1.ProfileTypePermissive,
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -68,14 +68,14 @@ var _ = Describe("TrusteeConfig Controller", func() {
 			tc := &trusteev1alpha1.TrusteeConfig{}
 			err := k8sClient.Get(ctx, typeNamespacedName, tc)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(tc.Spec.Profile).To(Equal(trusteev1alpha1.ProfilePermissive))
+			Expect(tc.Spec.Profile).To(Equal(trusteev1alpha1.ProfileTypePermissive))
 		})
 
 		It("should build correct Trustee spec for Permissive profile", func() {
 			reconciler := &TrusteeConfigReconciler{}
 			tc := &trusteev1alpha1.TrusteeConfig{
 				Spec: trusteev1alpha1.TrusteeConfigSpec{
-					Profile: trusteev1alpha1.ProfilePermissive,
+					Profile: trusteev1alpha1.ProfileTypePermissive,
 				},
 			}
 
@@ -87,7 +87,7 @@ var _ = Describe("TrusteeConfig Controller", func() {
 			reconciler := &TrusteeConfigReconciler{}
 			tc := &trusteev1alpha1.TrusteeConfig{
 				Spec: trusteev1alpha1.TrusteeConfigSpec{
-					Profile:        trusteev1alpha1.ProfilePermissive,
+					Profile:        trusteev1alpha1.ProfileTypePermissive,
 					KbsServiceType: corev1.ServiceTypeNodePort,
 				},
 			}
@@ -100,7 +100,7 @@ var _ = Describe("TrusteeConfig Controller", func() {
 			reconciler := &TrusteeConfigReconciler{}
 			tc := &trusteev1alpha1.TrusteeConfig{
 				Spec: trusteev1alpha1.TrusteeConfigSpec{
-					Profile:      trusteev1alpha1.ProfilePermissive,
+					Profile:      trusteev1alpha1.ProfileTypePermissive,
 					ReplicaCount: 3,
 				},
 			}
@@ -115,13 +115,41 @@ var _ = Describe("TrusteeConfig Controller", func() {
 			reconciler := &TrusteeConfigReconciler{}
 			tc := &trusteev1alpha1.TrusteeConfig{
 				Spec: trusteev1alpha1.TrusteeConfigSpec{
-					Profile:        trusteev1alpha1.ProfilePermissive,
+					Profile:        trusteev1alpha1.ProfileTypePermissive,
 					KbsServiceType: corev1.ServiceTypeLoadBalancer,
 				},
 			}
 
 			spec := reconciler.buildTrusteeSpec(tc)
 			Expect(spec.KBS.Service.ExposeLoadBalancer).To(BeTrue())
+		})
+
+		It("should enable TLS when an HTTPS TLS secret is set", func() {
+			reconciler := &TrusteeConfigReconciler{}
+			tc := &trusteev1alpha1.TrusteeConfig{
+				Spec: trusteev1alpha1.TrusteeConfigSpec{
+					Profile: trusteev1alpha1.ProfileTypePermissive,
+					HttpsSpec: trusteev1alpha1.HttpsSpec{
+						TlsSecretName: "kbs-tls",
+					},
+				},
+			}
+
+			spec := reconciler.buildTrusteeSpec(tc)
+			Expect(spec.KBS.TLS.Enabled).To(BeTrue())
+			Expect(spec.KBS.TLS.SecretName).To(Equal("kbs-tls"))
+		})
+
+		It("should not enable TLS by default", func() {
+			reconciler := &TrusteeConfigReconciler{}
+			tc := &trusteev1alpha1.TrusteeConfig{
+				Spec: trusteev1alpha1.TrusteeConfigSpec{
+					Profile: trusteev1alpha1.ProfileTypePermissive,
+				},
+			}
+
+			spec := reconciler.buildTrusteeSpec(tc)
+			Expect(spec.KBS.TLS.Enabled).To(BeFalse())
 		})
 	})
 })
