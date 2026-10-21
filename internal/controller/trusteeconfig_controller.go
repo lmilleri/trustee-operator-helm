@@ -89,8 +89,12 @@ func (r *TrusteeConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		logger.Info("created Trustee", "name", trustee.Name)
 	} else {
 		if !reflect.DeepEqual(trustee.Spec, desiredSpec) {
+			// Patch (not Update) the spec: a merge patch carries no resourceVersion,
+			// so it does not conflict with the Trustee controller concurrently
+			// writing the Trustee status ("the object has been modified").
+			patch := client.MergeFrom(trustee.DeepCopy())
 			trustee.Spec = desiredSpec
-			if err := r.Update(ctx, trustee); err != nil {
+			if err := r.Patch(ctx, trustee, patch); err != nil {
 				logger.Error(err, "failed to update Trustee")
 				r.setCondition(tc, metav1.ConditionFalse, "TrusteeUpdateFailed", err.Error())
 				_ = r.Status().Update(ctx, tc)
