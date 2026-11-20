@@ -8,9 +8,12 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: $0 <release-name> <command> [args...]
+Usage: $0 [release-name] <command> [args...]
 
 The script automatically handles admin token extraction and port-forwarding.
+
+If release-name is omitted, it is auto-detected from the
+"<release>-bootstrap-user-keys" secret in the namespace.
 
 Admin commands (use admin token automatically):
   set-resource-policy    Set the KBS resource policy
@@ -46,13 +49,58 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || $# -eq 0 ]]; then
     usage
 fi
 
-RELEASE_NAME="${1:?Usage: $0 <release-name> <command> [args...]}"
-shift
+NAMESPACE="${NAMESPACE:-default}"
+KBS_PORT="${KBS_PORT:-8080}"
+LOCAL_PORT="${LOCAL_PORT:-8080}"
+
+ALL_COMMANDS="get-resource attest set-resource-policy set-attestation-policy set-resource delete-resource get-reference-value set-sample-reference-value"
+
+# The release name is optional: when the first argument is already a known
+# command (optionally preceded by "config"), auto-detect the release instead.
+FIRST_ARG="${1:-}"
+if [[ "$FIRST_ARG" == "config" ]]; then
+    if [[ " $ALL_COMMANDS " == *" ${2:-} "* ]]; then
+        RELEASE_NAME=""
+    else
+        RELEASE_NAME="${2:?Usage: $0 [release-name] <command> [args...]}"
+        shift
+    fi
+elif [[ " $ALL_COMMANDS " == *" $FIRST_ARG "* ]]; then
+    RELEASE_NAME=""
+else
+    RELEASE_NAME="$FIRST_ARG"
+    shift
+fi
+
+if [[ -z "$RELEASE_NAME" ]]; then
+    mapfile -t CANDIDATES < <(
+        kubectl get secrets -n "$NAMESPACE" -o name 2>/dev/null \
+            | sed 's#^secret/##' \
+            | grep -- '-bootstrap-user-keys$' \
+            | sed 's#-bootstrap-user-keys$##' \
+            | sort -u
+    )
+    if [[ ${#CANDIDATES[@]} -eq 0 ]]; then
+        echo "Error: could not auto-detect a release in namespace '$NAMESPACE'." >&2
+        echo "Pass the release name explicitly: $0 <release-name> <command> [args...]" >&2
+        exit 1
+    elif [[ ${#CANDIDATES[@]} -gt 1 ]]; then
+        echo "Error: multiple releases found in namespace '$NAMESPACE':" >&2
+        printf '  %s\n' "${CANDIDATES[@]}" >&2
+        echo "Pass the release name explicitly: $0 <release-name> <command> [args...]" >&2
+        exit 1
+    fi
+    RELEASE_NAME="${CANDIDATES[0]}"
+    echo "Using release: $RELEASE_NAME" >&2
+fi
 
 # Strip "config" if the user passed it — the script adds it automatically for admin commands
 if [[ "${1:-}" == "config" ]]; then
     shift
 fi
+
+SECRET_NAME="${RELEASE_NAME}-bootstrap-user-keys"
+SVC_NAME="${RELEASE_NAME}-kbs"
 
 # Determine if this is a top-level command (no admin token / no config wrapper)
 TOPLEVEL_COMMANDS="get-resource attest"
@@ -63,12 +111,6 @@ for cmd in $TOPLEVEL_COMMANDS; do
         break
     fi
 done
-
-NAMESPACE="${NAMESPACE:-default}"
-KBS_PORT="${KBS_PORT:-8080}"
-LOCAL_PORT="${LOCAL_PORT:-8080}"
-SECRET_NAME="${RELEASE_NAME}-bootstrap-user-keys"
-SVC_NAME="${RELEASE_NAME}-kbs"
 
 if ! command -v kbs-client &>/dev/null; then
     echo "Error: kbs-client not found in PATH" >&2

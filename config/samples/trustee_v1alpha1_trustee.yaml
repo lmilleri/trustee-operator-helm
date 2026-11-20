@@ -13,22 +13,22 @@ spec:
   kbs:
     replicaCount: 1
     image:
-      repository: ghcr.io/confidential-containers/staged-images/kbs-grpc-as
-      tag: latest
+      repository: ghcr.io/confidential-containers/key-broker-service
+      tag: v0.23.0
     service:
       port: 8080
   as:
     replicaCount: 1
     image:
-      repository: ghcr.io/confidential-containers/staged-images/coco-as-grpc
-      tag: latest
+      repository: ghcr.io/confidential-containers/attestation-service
+      tag: v0.23.0
     service:
       port: 50004
   rvps:
     replicaCount: 1
     image:
-      repository: ghcr.io/confidential-containers/staged-images/rvps
-      tag: latest
+      repository: ghcr.io/confidential-containers/reference-value-provider-service
+      tag: v0.23.0
     service:
       port: 50003
   secrets:

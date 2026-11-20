@@ -1530,17 +1530,71 @@ spec:
                         type: object
                       nvidia:
                         properties:
+                          nrasUrl:
+                            description: |-
+                              NrasURL is the NRAS base URL used when Type is NvRemote. Empty uses the
+                              built-in default.
+                            type: string
+                          ocspUrl:
+                            description: |-
+                              OCSPURL is the OCSP service base URL used when Type is NvLocal. Empty
+                              uses the built-in default.
+                            type: string
+                          rimStorePath:
+                            description: |-
+                              RimStorePath is the filesystem RIM store path used when Type is NvLocal.
+                              When set, it is used instead of RimURL.
+                            type: string
+                          rimUrl:
+                            description: |-
+                              RimURL is the remote RIM service base URL used when Type is NvLocal.
+                              Empty uses the built-in default.
+                            type: string
+                          serviceKey:
+                            description: |-
+                              ServiceKey is the NVIDIA cloud service key for NvLocal/NvRemote. Empty
+                              omits it.
+                            type: string
                           type:
                             default: Local
+                            description: |-
+                              Type is the NVIDIA verifier type: Local, Remote, NvLocal, or NvRemote.
+                              NvLocal and NvRemote are only available on x86_64.
+                            enum:
+                            - Local
+                            - Remote
+                            - NvLocal
+                            - NvRemote
                             type: string
                           verifierUrl:
+                            description: |-
+                              VerifierURL is the NRAS attestation endpoint (the /v4/attest path) used
+                              when Type is Remote. Optional: if empty, the verifier uses its built-in
+                              default.
                             type: string
                         type: object
                       se:
                         properties:
                           credsDir:
+                            description: |-
+                              CredsDir is the absolute path on the target node to the directory
+                              containing IBM SE attestation materials.
+                            type: string
+                          enableFirmwareVerification:
+                            description: |-
+                              EnableFirmwareVerification enables firmware hash verification against
+                              the IBM firmware attestation API. Only effective on z17 systems. When
+                              true, guests without a firmware hash are rejected.
+                            type: boolean
+                          firmwareVerifyUrl:
+                            description: |-
+                              FirmwareVerifyURL is the IBM firmware attestation API URL. Optional: if
+                              empty, the verifier uses its built-in default.
                             type: string
                           nodeName:
+                            description: |-
+                              NodeName is the Kubernetes node name where the IBM SE materials
+                              directory resides.
                             type: string
                         type: object
                     type: object
@@ -5074,6 +5128,29 @@ spec:
                       port:
                         format: int32
                         type: integer
+                    type: object
+                  spire:
+                    description: |-
+                      KBSSpireSpec configures the KBS SPIRE plugin, which delivers SPIFFE
+                      X.509-SVIDs to attested guests via an existing SPIRE deployment's Delegated
+                      Identity API. Requires a KBS image built with the `spire-plugin` cargo
+                      feature, and a cluster that already runs SPIRE. The SPIRE admin socket must
+                      be made available to the KBS container, for example via
+                      ExtraVolumes/ExtraVolumeMounts.
+                    properties:
+                      adminSocketPath:
+                        description: |-
+                          AdminSocketPath is the path to the SPIRE Agent admin (Delegated Identity
+                          API) socket as seen inside the KBS container.
+                        type: string
+                      attestedSelectorValue:
+                        description: |-
+                          AttestedSelectorValue is the value used for the always-added
+                          `trustee:<value>` marker selector on every SVID request.
+                        type: string
+                      enabled:
+                        description: Enabled turns on the `spire` KBS plugin.
+                        type: boolean
                     type: object
                   tls:
                     description: |-

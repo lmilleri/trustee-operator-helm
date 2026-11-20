@@ -138,6 +138,26 @@ type KBSServiceSpec struct {
 	LoadBalancerAnnotations map[string]string `json:"loadBalancerAnnotations,omitempty"`
 }
 
+// KBSSpireSpec configures the KBS SPIRE plugin, which delivers SPIFFE
+// X.509-SVIDs to attested guests via an existing SPIRE deployment's Delegated
+// Identity API. Requires a KBS image built with the `spire-plugin` cargo
+// feature, and a cluster that already runs SPIRE. The SPIRE admin socket must
+// be made available to the KBS container, for example via
+// ExtraVolumes/ExtraVolumeMounts.
+type KBSSpireSpec struct {
+	// Enabled turns on the `spire` KBS plugin.
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+	// AdminSocketPath is the path to the SPIRE Agent admin (Delegated Identity
+	// API) socket as seen inside the KBS container.
+	// +optional
+	AdminSocketPath string `json:"adminSocketPath,omitempty"`
+	// AttestedSelectorValue is the value used for the always-added
+	// `trustee:<value>` marker selector on every SVID request.
+	// +optional
+	AttestedSelectorValue string `json:"attestedSelectorValue,omitempty"`
+}
+
 type KBSSpec struct {
 	// +kubebuilder:default=1
 	// +optional
@@ -152,6 +172,8 @@ type KBSSpec struct {
 	Service KBSServiceSpec `json:"service,omitempty"`
 	// +optional
 	TLS KBSTLSSpec `json:"tls,omitempty"`
+	// +optional
+	Spire KBSSpireSpec `json:"spire,omitempty"`
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 	// +optional
@@ -187,11 +209,37 @@ type KBSTLSSpec struct {
 }
 
 type NvidiaVerifierSpec struct {
+	// Type is the NVIDIA verifier type: Local, Remote, NvLocal, or NvRemote.
+	// NvLocal and NvRemote are only available on x86_64.
+	// +kubebuilder:validation:Enum=Local;Remote;NvLocal;NvRemote
 	// +kubebuilder:default=Local
 	// +optional
 	Type string `json:"type,omitempty"`
+	// VerifierURL is the NRAS attestation endpoint (the /v4/attest path) used
+	// when Type is Remote. Optional: if empty, the verifier uses its built-in
+	// default.
 	// +optional
 	VerifierURL string `json:"verifierUrl,omitempty"`
+	// NrasURL is the NRAS base URL used when Type is NvRemote. Empty uses the
+	// built-in default.
+	// +optional
+	NrasURL string `json:"nrasUrl,omitempty"`
+	// RimURL is the remote RIM service base URL used when Type is NvLocal.
+	// Empty uses the built-in default.
+	// +optional
+	RimURL string `json:"rimUrl,omitempty"`
+	// RimStorePath is the filesystem RIM store path used when Type is NvLocal.
+	// When set, it is used instead of RimURL.
+	// +optional
+	RimStorePath string `json:"rimStorePath,omitempty"`
+	// OCSPURL is the OCSP service base URL used when Type is NvLocal. Empty
+	// uses the built-in default.
+	// +optional
+	OCSPURL string `json:"ocspUrl,omitempty"`
+	// ServiceKey is the NVIDIA cloud service key for NvLocal/NvRemote. Empty
+	// omits it.
+	// +optional
+	ServiceKey string `json:"serviceKey,omitempty"`
 }
 
 type DCAPVerifierSpec struct {
@@ -202,10 +250,23 @@ type DCAPVerifierSpec struct {
 }
 
 type SEVerifierSpec struct {
+	// CredsDir is the absolute path on the target node to the directory
+	// containing IBM SE attestation materials.
 	// +optional
 	CredsDir string `json:"credsDir,omitempty"`
+	// NodeName is the Kubernetes node name where the IBM SE materials
+	// directory resides.
 	// +optional
 	NodeName string `json:"nodeName,omitempty"`
+	// EnableFirmwareVerification enables firmware hash verification against
+	// the IBM firmware attestation API. Only effective on z17 systems. When
+	// true, guests without a firmware hash are rejected.
+	// +optional
+	EnableFirmwareVerification bool `json:"enableFirmwareVerification,omitempty"`
+	// FirmwareVerifyURL is the IBM firmware attestation API URL. Optional: if
+	// empty, the verifier uses its built-in default.
+	// +optional
+	FirmwareVerifyURL string `json:"firmwareVerifyUrl,omitempty"`
 }
 
 type VerifierSpec struct {
